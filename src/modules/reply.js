@@ -1,6 +1,7 @@
 const attachments = require("../data/attachments");
 const utils = require("../utils");
 const Thread = require("../data/Thread");
+const moderator = require("../data/moderators");
 
 module.exports = ({ bot, knex, config, commands }) => {
   // Mods can reply to modmail threads using !r or !reply
@@ -13,6 +14,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
     const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, false);
     if (replied) msg.delete();
+    await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text.length });
   }, {
     aliases: ["r"]
   });
@@ -26,6 +28,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
     const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, true);
     if (replied) msg.delete();
+    await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text.length });
   }, {
     aliases: ["ar"]
   });
@@ -45,6 +48,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
       const edited = await thread.editStaffReply(msg.member, threadMessage, args.text);
       if (edited) msg.delete().catch(utils.noop);
+      await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_edit_count: 1 });
     }, {
       aliases: ["e"]
     });
@@ -65,6 +69,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
       await thread.deleteStaffReply(msg.member, threadMessage);
       msg.delete().catch(utils.noop);
+      await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_delete_count: 1 });
     }, {
       aliases: ["d"]
     });

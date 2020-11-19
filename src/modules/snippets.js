@@ -2,6 +2,7 @@ const threads = require("../data/threads");
 const snippets = require("../data/snippets");
 const utils = require("../utils");
 const { parseArguments } = require("knub-command-manager");
+const moderator = require("../data/moderators");
 
 const whitespaceRegex = /\s/;
 const quoteChars = ["'", "\""];
@@ -72,6 +73,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
     const replied = await thread.replyToUser(msg.member, rendered, [], isAnonymous);
     if (replied) msg.delete();
+    await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, snippets_used_count: 1 });
   });
 
   // Show or add a snippet
