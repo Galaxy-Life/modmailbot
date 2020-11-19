@@ -1,7 +1,7 @@
 const moment = require("moment");
 const config = require("../cfg");
 
-module.exports = function({ bot, knex, commands }) {
+module.exports = function({ knex, commands }) {
   commands.addGlobalCommand("initializeStatsDB", [], async (msg) => {
     if (! msg.member.roles.includes(config.statRoleId)) return;
 
@@ -33,7 +33,6 @@ module.exports = function({ bot, knex, commands }) {
       }
     }
 
-    const dmChannel = await bot.getDMChannel(msg.author.id);
-    await dmChannel.createMessage(message);
+    await msg.channel.createMessage(message);
   });
 }

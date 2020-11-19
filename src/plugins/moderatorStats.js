@@ -2,7 +2,7 @@ const moment = require("moment");
 const config = require("../cfg");
 const moderator = require("../data/moderators");
 
-module.exports = function({ bot, commands }) {
+module.exports = function({ commands }) {
   commands.addGlobalCommand("stats", "<userId:userId>", async (msg, args) => {
     if (! msg.member.roles.includes(config.statRoleId)) return;
 
@@ -72,8 +72,7 @@ module.exports = function({ bot, commands }) {
       }
     }
 
-    const dmChannel = await bot.getDMChannel(msg.author.id);
-    await dmChannel.createMessage(message);
+    await msg.channel.createMessage(message);
   });
 
   commands.addGlobalCommand("stats total", [], async (msg) => {
@@ -117,7 +116,6 @@ module.exports = function({ bot, commands }) {
       }
     }
 
-    const dmChannel = await bot.getDMChannel(msg.author.id);
-    await dmChannel.createMessage(message);
+    await msg.channel.createMessage(message);
   });
 }
