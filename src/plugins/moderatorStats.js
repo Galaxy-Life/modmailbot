@@ -34,6 +34,10 @@ module.exports = function({ bot, commands }) {
               "value": stats.reply_char_count
             },
             {
+              "name": "Number of snippets used",
+              "value": stats.snippets_used_count
+            },
+            {
               "name": "Number of edits",
               "value": stats.reply_edit_count
             },
@@ -64,6 +68,51 @@ module.exports = function({ bot, commands }) {
           "thumbnail": {
             "url": config.statFailedEmbedImageUrl
           }
+        }
+      }
+    }
+
+    const dmChannel = await bot.getDMChannel(msg.author.id);
+    await dmChannel.createMessage(message);
+  });
+
+  commands.addGlobalCommand("stats total", [], async (msg) => {
+    if (! msg.member.roles.includes(config.statRoleId)) return;
+
+    const stats = await moderator.getTotalStats();
+
+    let message = {
+      "embed": {
+        "title": "**ModMail Stats**",
+        "color": 13902811,
+        "fields": [
+          {
+            "name": "Total number of replies",
+            "value": stats.reply_count
+          },
+          {
+            "name": "Total chars in replies",
+            "value": stats.reply_char_count
+          },
+          {
+            "name": "Total number of snippets used",
+            "value": stats.snippets_used_count
+          },
+          {
+            "name": "Total number of edits",
+            "value": stats.reply_edit_count
+          },
+          {
+            "name": "Total number of deleted replies",
+            "value": stats.reply_delete_count
+          }
+        ],
+        "footer": {
+          "text": "success"
+        },
+        "timestamp": moment.utc().format("YYYY-MM-DD HH:mm:ss"),
+        "thumbnail": {
+          "url": config.statSuccessEmbedImageUrl
         }
       }
     }

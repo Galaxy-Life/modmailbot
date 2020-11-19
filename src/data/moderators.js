@@ -4,7 +4,7 @@ const knex = require("../knex");
 /**
  * Returns the moderators stats
  * @param {String} userId
- * @returns {Promise<{ user_name: string, reply_count: integer, reply_chars: integer, snippets_used: integer, first_action: string }>|boolean}
+ * @returns {Promise<{ user_name: string, reply_count: integer, reply_char_count: integer, reply_edit_count: integer, reply_delete_count: integer, snippets_used: integer, first_action: string }>|boolean}
  */
 async function getModeratorStats(userId) {
   if (! await moderatorIsInDB(userId)) return false;
@@ -21,6 +21,33 @@ async function getModeratorStats(userId) {
     snippets_used_count: row.snippets_used_count,
     first_action: row.first_action
   };
+}
+
+/**
+ * Return the total stats
+ * @returns {Promise<{ total_moderators: integer, reply_count: integer, reply_char_count: integer, reply_edit_count: integer, reply_delete_count: integer, snippets_used: integer }>}
+ */
+
+async function getTotalStats() {
+  const rows = await knex("moderator_stats").select();
+  var stats = {
+    total_moderators: 0,
+    reply_count: 0,
+    reply_char_count: 0,
+    reply_edit_count: 0,
+    reply_delete_count: 0,
+    snippets_used_count: 0
+  }
+  rows.forEach(row => {
+    stats.total_moderators += 1;
+    stats.reply_count += row.reply_count;
+    stats.reply_char_count += row.reply_char_count;
+    stats.reply_edit_count += row.reply_edit_count;
+    stats.reply_delete_count += row.reply_delete_count;
+    stats.snippets_used_count += row.snippets_used_count;
+  });
+
+  return stats;
 }
 
 /**
@@ -77,6 +104,7 @@ async function addModeratorToDB(userId, userName) {
 
 module.exports = {
   getModeratorStats,
+  getTotalStats,
   moderatorIsInDB,
   updateModeratorStats,
   addModeratorToDB,
