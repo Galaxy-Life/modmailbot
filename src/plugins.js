@@ -9,6 +9,7 @@ const pacote = require("pacote");
 const path = require("path");
 const threads = require("./data/threads");
 const displayRoles = require("./data/displayRoles");
+const { PluginInstallationError } = require("./PluginInstallationError");
 
 const pluginSources = {
   npm: {
@@ -16,17 +17,31 @@ const pluginSources = {
       return new Promise((resolve, reject) => {
         console.log(`Installing ${plugins.length} plugins from NPM...`);
 
+        // Rewrite GitHub npm package names to full GitHub tarball links to avoid
+        // needing to have Git installed to install these plugins.
+
+        // $1 package author, $2 package name, $3 branch (optional)
+        const npmGitHubPattern = /^([a-z0-9_.-]+)\/([a-z0-9_.-]+)(?:#([a-z0-9_.-]+))?$/i;
+        const rewrittenPluginNames = plugins.map(pluginName => {
+          const gitHubPackageParts = pluginName.match(npmGitHubPattern);
+          if (! gitHubPackageParts) {
+            return pluginName;
+          }
+
+          return `https://api.github.com/repos/${gitHubPackageParts[1]}/${gitHubPackageParts[2]}/tarball${gitHubPackageParts[3] ? "/" + gitHubPackageParts[3] : ""}`;
+        });
+
         let stderr = "";
         const npmProcessName = /^win/.test(process.platform) ? "npm.cmd" : "npm";
         const npmProcess = childProcess.spawn(
           npmProcessName,
-          ["install", "--verbose", "--no-save", ...plugins],
+          ["install", "--verbose", "--no-save", ...rewrittenPluginNames],
           { cwd: process.cwd() }
         );
         npmProcess.stderr.on("data", data => { stderr += String(data) });
         npmProcess.on("close", code => {
           if (code !== 0) {
-            return reject(new Error(stderr));
+            return reject(new PluginInstallationError(stderr));
           }
 
           return resolve();
@@ -39,7 +54,7 @@ const pluginSources = {
       const packageName = manifest.name;
       const pluginFn = require(packageName);
       if (typeof pluginFn !== "function") {
-        throw new Error(`Plugin '${plugin}' is not a valid plugin`);
+        throw new PluginInstallationError(`Plugin '${plugin}' is not a valid plugin`);
       }
 
       return pluginFn(pluginApi);
@@ -52,7 +67,7 @@ const pluginSources = {
       const requirePath = path.join(__dirname, "..", plugin);
       const pluginFn = require(requirePath);
       if (typeof pluginFn !== "function") {
-        throw new Error(`Plugin '${plugin}' is not a valid plugin`);
+        throw new PluginInstallationError(`Plugin '${plugin}' is not a valid plugin`);
       }
       return pluginFn(pluginApi);
     },
