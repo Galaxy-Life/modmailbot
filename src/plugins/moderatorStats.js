@@ -4,7 +4,7 @@ const moderator = require("../data/moderators");
 
 module.exports = function({ commands }) {
   commands.addGlobalCommand("stats", "<userId:userId>", async (msg, args) => {
-    if (! msg.member.roles.includes(config.statRoleId)) return;
+    if (msg.channel.id != config.statChannelId) return;
 
     const stats = await moderator.getModeratorStats(args.userId);
 
@@ -76,7 +76,7 @@ module.exports = function({ commands }) {
   });
 
   commands.addGlobalCommand("stats total", [], async (msg) => {
-    if (! msg.member.roles.includes(config.statRoleId)) return;
+    if (msg.channel.id != config.statChannelId) return;
 
     const stats = await moderator.getTotalStats();
 

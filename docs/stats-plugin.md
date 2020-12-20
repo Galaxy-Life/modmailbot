@@ -14,7 +14,7 @@ plugins[] = ./src/plugins/initializeModeratorStatsDB.js
 You need to give the plugin the ID of a role that should be able to execute the commands. Furthermore, you CAN make the bot use images in the embed messages
 ```ini
 # required
-statRoleId = {ID of role that should be able to execute !stats, !stats total and !initializeStatsDB commands}
+statChannelId = {ID of the channel wherein the stats command should be able to be executed}
 # optional
 statSuccessEmbedImageUrl = https://cdn.discordapp.com/attachments/778728888602722346/779014008954552410/Starling_Scientist.png
 statFailedEmbedImageUrl = https://cdn.discordapp.com/attachments/778728888602722346/779013987990765608/Oopsies.png

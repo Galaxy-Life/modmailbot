@@ -3,7 +3,7 @@ const config = require("../cfg");
 
 module.exports = function({ knex, commands }) {
   commands.addGlobalCommand("initializeStatsDB", [], async (msg) => {
-    if (! msg.member.roles.includes(config.statRoleId)) return;
+    if (msg.channel.id != config.statChannelId) return;
 
     if (! await knex.schema.hasTable("moderator_stats")) {
       await knex.schema.createTable("moderator_stats", table => {
