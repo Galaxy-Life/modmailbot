@@ -126,7 +126,9 @@ const downloadAttachment = (attachment, tries = 0) => {
           });
         });
       }).on("error", (err) => {
-        fs.unlink(filepath);
+        fs.unlink(filepath, (err) => {
+        	if(err) console.error("Error unlinking attachment!");
+        });
         console.error("Error downloading attachment, retrying");
         resolve(downloadAttachment(attachment, tries++));
       });
