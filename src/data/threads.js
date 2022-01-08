@@ -107,7 +107,7 @@ async function createNewThreadForUser(user, opts = {}) {
     // If set in config, check that the user's account is old enough (time since they registered on Discord)
     // If the account is too new, don't start a new thread and optionally reply to them with a message
     if (config.requiredAccountAge && ! ignoreRequirements) {
-      if (user.createdAt > moment() - config.requiredAccountAge * HOURS){
+      if (user.createdAt > moment.utc() - config.requiredAccountAge * HOURS){
         if (config.accountAgeDeniedMessage) {
           const accountAgeDeniedMessage = utils.readMultilineConfigValue(config.accountAgeDeniedMessage);
           const privateChannel = await user.getDMChannel();
@@ -143,7 +143,7 @@ async function createNewThreadForUser(user, opts = {}) {
       // Check if the user joined any of the main servers a long enough time ago
       // If we don't see this user on any of the main guilds (the size check below), assume we're just missing some data and give the user the benefit of the doubt
       const isAllowed = userGuildData.size === 0 || Array.from(userGuildData.values()).some(({guild, member}) => {
-        return member.joinedAt < moment() - config.requiredTimeOnServer * MINUTES;
+        return member.joinedAt < moment.utc() - config.requiredTimeOnServer * MINUTES;
       });
 
       if (! isAllowed) {
