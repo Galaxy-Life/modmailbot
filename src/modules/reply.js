@@ -14,7 +14,7 @@ module.exports = ({ bot, knex, config, commands }) => {
 
     const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, false);
     if (replied) msg.delete();
-    await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text.length });
+    await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text ? args.text.length : 0 });
   }, {
     aliases: ["r"]
   });
