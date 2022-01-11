@@ -3,7 +3,7 @@ const config = require("../cfg");
 const moderator = require("../data/moderators");
 
 module.exports = function({ commands }) {
-  commands.addGlobalCommand("stats", "<userId:userId>", async (msg, args) => {
+  commands.addInboxServerCommand("stats", "<userId:userId>", async (msg, args) => {
     if (msg.channel.id != config.statChannelId) return;
 
     const stats = await moderator.getModeratorStats(args.userId);
@@ -75,7 +75,7 @@ module.exports = function({ commands }) {
     await msg.channel.createMessage(message);
   });
 
-  commands.addGlobalCommand("stats total", [], async (msg) => {
+  commands.addInboxServerCommand("stats total", [], async (msg) => {
     if (msg.channel.id != config.statChannelId) return;
 
     const stats = await moderator.getTotalStats();
