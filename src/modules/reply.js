@@ -12,7 +12,7 @@ module.exports = ({ bot, knex, config, commands }) => {
       return;
     }
 
-    const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, false);
+    const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, config.forceAnon, msg.messageReference);
     if (replied) msg.delete();
     await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text ? args.text.length : 0 });
   }, {
@@ -26,11 +26,24 @@ module.exports = ({ bot, knex, config, commands }) => {
       return;
     }
 
-    const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, true);
+    const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, true, msg.messageReference);
     if (replied) msg.delete();
     await moderator.updateModeratorStats(msg.author.id, msg.author.username, { reply_count: 1, reply_char_count: args.text ? args.text.length : 0 });
   }, {
     aliases: ["ar"]
+  });
+
+  // Replies always with the role and the username. Useful if forceAnon is enabled.
+  commands.addInboxThreadCommand("realreply", "[text$]", async (msg, args, thread) => {
+    if (! args.text && msg.attachments.length === 0) {
+      utils.postError(msg.channel, "Text or attachment required");
+      return;
+    }
+
+    const replied = await thread.replyToUser(msg.member, args.text || "", msg.attachments, false, msg.messageReference);
+    if (replied) msg.delete();
+  }, {
+    aliases: ["rr"]
   });
 
   if (config.allowStaffEdit) {

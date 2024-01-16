@@ -1,9 +1,9 @@
 const moment = require("moment");
 const threads = require("../data/threads");
 const utils = require("../utils");
-const config = require("../cfg");
 
 const {THREAD_STATUS} = require("../data/constants");
+const {getOrFetchChannel} = require("../utils");
 
 module.exports = ({ bot, knex, config, commands }) => {
   if (! config.allowSuspend) return;
@@ -13,7 +13,7 @@ module.exports = ({ bot, knex, config, commands }) => {
     for (const thread of threadsToBeSuspended) {
       if (thread.status === THREAD_STATUS.OPEN) {
         await thread.suspend();
-        await thread.postSystemMessage(`**Thread suspended** as scheduled by ${thread.scheduled_suspend_name}. This thread will act as closed until unsuspended with \`!unsuspend\``);
+        await thread.postSystemMessage(`**Thread suspended** as scheduled by ${thread.scheduled_suspend_name}. This thread will act as closed until unsuspended with \`${config.prefix}unsuspend\``);
       }
     }
   }
@@ -41,6 +41,10 @@ module.exports = ({ bot, knex, config, commands }) => {
   });
 
   commands.addInboxThreadCommand("suspend", "[delay:delay]", async (msg, args, thread) => {
+    if (thread.status === THREAD_STATUS.SUSPENDED) {
+      thread.postSystemMessage("Thread is already suspended.");
+      return;
+    }
     if (args.delay) {
       const suspendAt = moment.utc().add(args.delay, "ms");
       await thread.scheduleSuspend(suspendAt.format("YYYY-MM-DD HH:mm:ss"), msg.author);
@@ -51,8 +55,8 @@ module.exports = ({ bot, knex, config, commands }) => {
     }
 
     await thread.suspend();
-    thread.postSystemMessage("**Thread suspended!** This thread will act as closed until unsuspended with `!unsuspend`");
-  });
+    thread.postSystemMessage(`**Thread suspended!** This thread will act as closed until unsuspended with \`${config.prefix}unsuspend\``);
+  }, { allowSuspended: true });
 
   commands.addInboxServerCommand("unsuspend", [], async (msg, args, thread) => {
     if (thread) {
@@ -62,7 +66,8 @@ module.exports = ({ bot, knex, config, commands }) => {
 
     thread = await threads.findSuspendedThreadByChannelId(msg.channel.id);
     if (! thread) {
-      msg.channel.createMessage("Not in a thread");
+      const channel = await getOrFetchChannel(bot, msg.channel.id);
+      channel.createMessage("Not in a thread");
       return;
     }
 

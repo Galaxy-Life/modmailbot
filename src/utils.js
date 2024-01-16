@@ -2,7 +2,6 @@ const Eris = require("eris");
 const bot = require("./bot");
 const moment = require("moment");
 const humanizeDuration = require("humanize-duration");
-const publicIp = require("public-ip");
 const config = require("./cfg");
 const { BotError } = require("./BotError");
 
@@ -96,29 +95,34 @@ function isStaff(member) {
 
 /**
  * Returns whether the given message is on the inbox server
- * @param msg
- * @returns {boolean}
+ * @param {Eris.Client} client
+ * @param {Eris.Message} msg
+ * @returns {Promise<boolean>}
  */
-function messageIsOnInboxServer(msg) {
-  if (! msg.channel.guild) return false;
-  if (msg.channel.guild.id !== getInboxGuild().id) return false;
+async function messageIsOnInboxServer(client, msg) {
+  const channel = await getOrFetchChannel(client, msg.channel.id);
+  if (! channel.guild) return false;
+  if (channel.guild.id !== getInboxGuild().id) return false;
   return true;
 }
 
 /**
  * Returns whether the given message is on the main server
- * @param msg
- * @returns {boolean}
+ * @param {Eris.Client} client
+ * @param {Eris.Message} msg
+ * @returns {Promise<boolean>}
  */
-function messageIsOnMainServer(msg) {
-  if (! msg.channel.guild) return false;
+async function messageIsOnMainServer(client, msg) {
+  const channel = await getOrFetchChannel(client, msg.channel.id);
+  if (! channel || ! channel.guild) return false;
 
   return getMainGuilds()
-    .some(g => msg.channel.guild.id === g.id);
+    .some(g => channel.guild.id === g.id);
 }
 
 /**
- * @param attachment
+ * @param {Eris.Attachment} attachment
+ * @param {string} attachmentUrl
  * @returns {Promise<string>}
  */
 async function formatAttachment(attachment, attachmentUrl) {
@@ -151,6 +155,7 @@ function getUserMention(str) {
 
 /**
  * Returns the current timestamp in an easily readable form
+ * @param {...Parameters<typeof moment>>} momentArgs
  * @returns {String}
  */
 function getTimestamp(...momentArgs) {
@@ -166,6 +171,27 @@ function disableLinkPreviews(str) {
   return str.replace(/(^|[^<])(https?:\/\/\S+)/ig, "$1<$2>");
 }
 
+/** @var {Promise<string>|null} cachedIp */
+let cachedIpPromise = null;
+
+/**
+ * @returns {Promise<string>}
+ */
+async function getSelfIp() {
+  if (! cachedIpPromise) {
+    // public-ip is ESM only, so we need to import it rather than require.
+    // dynamic import() works in cjs code.
+    const { publicIp } = await import("public-ip");
+    cachedIpPromise = publicIp({ timeout: 1000 })
+      .catch(err => {
+        console.warn(`Error while fetching public ip: ${err}`);
+        cachedIpPromise = null; // Retry later
+        return "UNKNOWN";
+      });
+  }
+  return cachedIpPromise;
+}
+
 /**
  * Returns a URL to the bot's web server
  * @param {String} path
@@ -176,7 +202,7 @@ async function getSelfUrl(path = "") {
     return `${config.url}/${path}`;
   } else {
     const port = config.port || 8890;
-    const ip = await publicIp.v4();
+    const ip = await getSelfIp();
     return `http://${ip}:${port}/${path}`;
   }
 }
@@ -490,6 +516,61 @@ function chunkMessageLines(str, maxChunkLength = 1990) {
   });
 }
 
+/**
+ * @type {Record<string, Promise<Eris.AnyChannel | null>>}
+ */
+const fetchChannelPromises = {};
+
+/**
+ * @param {Eris.Client} client
+ * @param {string} channelId
+ * @returns {Promise<Eris.AnyChannel | null>}
+ */
+async function getOrFetchChannel(client, channelId) {
+  const cachedChannel = client.getChannel(channelId);
+  if (cachedChannel) {
+    return cachedChannel;
+  }
+
+  if (! fetchChannelPromises[channelId]) {
+    fetchChannelPromises[channelId] = (async () => {
+      const channel = client.getRESTChannel(channelId);
+      if (! channel) {
+        return null;
+      }
+
+      // Cache the result
+      if (channel instanceof Eris.ThreadChannel) {
+        channel.guild.threads.add(channel);
+        client.threadGuildMap[channel.id] = channel.guild.id;
+      } else if (channel instanceof Eris.GuildChannel) {
+        channel.guild.channels.add(channel);
+        client.channelGuildMap[channel.id] = channel.guild.id;
+      } else if (channel instanceof Eris.PrivateChannel) {
+        client.privateChannels.add(channel);
+      } else if (channel instanceof Eris.GroupChannel) {
+        client.groupChannels.add(channel);
+      }
+
+      return channel;
+    })();
+  }
+
+  return fetchChannelPromises[channelId];
+}
+
+/**
+ * Converts a MessageContent, i.e. string | AdvancedMessageContent, to an AdvancedMessageContent object
+ * @param {Eris.MessageContent} content
+ * @returns {Eris.AdvancedMessageContent}
+ */
+function messageContentToAdvancedMessageContent(content) {
+  return typeof content === "string" ? { content } : content;
+}
+
+const START_CODEBLOCK = "```";
+const END_CODEBLOCK = "```";
+
 module.exports = {
   getInboxGuild,
   getMainGuilds,
@@ -537,5 +618,12 @@ module.exports = {
   messageContentIsWithinMaxLength,
   chunkMessageLines,
 
+  messageContentToAdvancedMessageContent,
+
+  getOrFetchChannel,
+
   noop,
+
+  START_CODEBLOCK,
+  END_CODEBLOCK,
 };

@@ -1,5 +1,6 @@
 const utils = require("../utils");
 const threads = require("../data/threads");
+const {getOrFetchChannel} = require("../utils");
 
 module.exports = ({ bot, knex, config, commands }) => {
   commands.addInboxServerCommand("newthread", "<userId:userId>", async (msg, args, thread) => {
@@ -27,8 +28,9 @@ module.exports = ({ bot, knex, config, commands }) => {
       source: "command",
     });
 
-    createdThread.postSystemMessage(`Thread was opened by ${msg.author.username}#${msg.author.discriminator}`);
+    createdThread.postSystemMessage(`Thread was opened by ${msg.author.username}`);
 
-    msg.channel.createMessage(`Thread opened: <#${createdThread.channel_id}>`);
+    const channel = await getOrFetchChannel(bot, msg.channel.id);
+    channel.createMessage(`Thread opened: <#${createdThread.channel_id}>`);
   });
 };
